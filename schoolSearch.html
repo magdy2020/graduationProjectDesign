@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+  <head>
+
+    <link href="https://fonts.googleapis.com/css?family=Baloo+Thambi+2&display=swap" rel="stylesheet">
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="icon" href="./images/loc.png">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href='./css/bootstrap.min.css'>
+    <link rel='stylesheet' href="./css/style.css">
+    <link rel="stylesheet" href="./css/all.min.css">
+
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.14/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.14/"></script>
+
+    <script>
+      require([
+        "esri/Map",
+        "esri/layers/GeoJSONLayer",
+        "esri/views/MapView",
+        "esri/Graphic"
+      ], function(Map, GeoJSONLayer, MapView,Graphic) {
+        // If GeoJSON files are not on the same domain as your website, a CORS enabled server
+        // or a proxy is required.
+        const url =
+          "http://www.json-generator.com/api/json/get/cgfLpCcWmq?indent=2";
+
+
+          
+        // Paste the url into a browser's address bar to download and view the attributes
+        // in the GeoJSON file. These attributes include:
+        // * mag - magnitude
+        // * type - earthquake or other event such as nuclear test
+        // * place - location of the event
+        // * time - the time of the event
+        // Use the Arcade Date() function to format time field into a human-readable format
+
+        const template = {
+          title: "Earthquake Info",
+          content: "Magnitude {mag} {type} hit {place} on {time}",
+          fieldInfos: [
+            {
+              fieldName: "time",
+              format: {
+                dateFormat: "short-date-short-time"
+              }
+            }
+          ]
+        };
+
+        const renderer = {
+          type: "simple",
+          field: "mag",
+          symbol: {
+            type: "simple-marker",
+            color: "orange",
+            outline: {
+              color: "white"
+            }
+          },
+          visualVariables: [
+            {
+              type: "size",
+              field: "mag",
+              stops: [
+                {
+                  value: 2.5,
+                  size: "4px"
+                },
+                {
+                  value: 8,
+                  size: "40px"
+                }
+              ]
+            }
+          ]
+        };
+
+        const geojsonLayer = new GeoJSONLayer({
+          url: url,
+          copyright: "USGS Earthquakes",
+          popupTemplate: template,
+          renderer: renderer //optional
+        });
+
+        const map = new Map({
+          basemap: "satellite",
+          layers: [geojsonLayer]
+        });
+
+        const view = new MapView({
+          container: "viewDiv",
+          center: [24.09082 , 31.5084],
+          zoom: 7,
+          map: map
+        });
+
+        document.getElementById('draw').addEventListener('click', function(){
+          /////////////////////////////// Draw Polygon ////////////////////////////////////////
+        // Create a polygon geometry
+        var polygon = {
+          type: "polygon", // autocasts as new Polygon()
+          rings: [
+            [25.6989307, 32.6421013],
+            [29.9737091, 32.5262718],
+            [30.0626297, 31.24967],
+            [25.6989307, 32.6421013]
+          ]
+        };
+
+
+        // Create a symbol for rendering the graphic
+        var fillSymbol = {
+          type: "simple-fill", // autocasts as new SimpleFillSymbol()
+          color: [12, 193, 0, 0.2],
+          outline: {
+            // autocasts as new SimpleLineSymbol()
+            color: [255, 255, 255],
+            width: 1
+          }
+        };    
+
+
+        // Create a simple object containing useful information relating to the feature
+        var polyAtt = {
+          Name: "Information", // The name of the pipeline
+          Address: "cairo", // The owner of the pipeline
+          Age: "22" // The length of the pipeline
+        };
+
+        // Add the geometry and symbol to a new graphic
+        var polygonGraphic = new Graphic({
+          geometry: polygon,
+          symbol: fillSymbol,
+          attributes: polyAtt,
+          popupTemplate: {
+      title: "{Name}",
+      content: [
+        {
+          type: "fields",
+          fieldInfos: [
+            {
+              fieldName: "Name"
+            },
+            {
+              fieldName: "Address"
+            },
+            {
+              fieldName: "Age"
+            }
+          ]
+        }
+      ]
+    }
+        });
+
+
+        view.graphics.addMany([polygonGraphic]);
+
+
+        //////////////////////// Output Nearest Places ///////////////////////
+        //getLocation()
+
+/////////////////////////////// Draw Polygon ////////////////////////////////////////
+        })
+
+      });
+    </script>
+
+    <script>
+      var rmDuplications;
+
+      var lat=0 , lng=0 , userLat , userLng;
+      var distance = [
+        {name: 'مستشفى الجامعة ببنها' , lat:30.470240 , lng: 31.178420},
+        {name: 'المستشفى الكويتى التخصصى' , lat:31.188088 , lng: 30.465622},
+        {name: 'مستشفى الأطفال التخصصي ببنها' , lat:31.186915 , lng: 30.466804},
+        {name: 'مستشفى التأمين الصحي' , lat:31.187777 , lng: 30.466460}
+      ]
+      var arr = [] // For Store calculated Distance
+
+      window.onload = function(){
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(showPosition);
+      }
+
+
+      function showPosition(position) {
+        // Append User Location To Variables For Calc Distances
+        userLat = position.coords.latitude
+        userLng = position.coords.longitude  
+      }
+      }
+
+      // Search Function
+      function search(e){
+         // Loop Through All Places For Calc Distance With This Law
+          for(var x of distance){
+            var p = 0.017453292519943295;    //This is  Math.PI / 180
+          var c = Math.cos;
+          var a = 0.5 - c((userLat - x.lat) * p)/2 + 
+                  c(x.lat * p) * c(userLat * p) * 
+                  (1 - c((userLng - x.lng) * p))/2;
+          var R = 6371; //  Earth distance in km so it will return the distance in km
+          var dist = 2 * R * Math.asin(Math.sqrt(a));
+
+            // Push Distance Between User And All Places And Place Name In Array
+            arr.push({name: x.name , distance: dist})
+          }
+
+          //console.log(arr)
+          //console.log(dist)
+
+          // Store The User Selected Distance In Variable
+          var selectedDistance = document.getElementById('dis').value
+          var nearestPlaces = [] // For Output The Nearest Places
+          for(var x of arr){
+            // Clear The Array If User Select Another Distance
+            if(document.getElementById('dis').value !== selectedDistance){
+              nearestPlaces = []
+            }
+
+            // If Place Distnce In Range I Will Push It To The Nearest Places Array
+            if(x.distance <= selectedDistance){
+              nearestPlaces.push(x.name)
+            }
+          }
+
+          // Remove Duplication The Produced From The Repeated Selection Of Distance
+          rmDuplications = new Set(nearestPlaces);
+          
+          if(nearestPlaces.length > 0) {
+            document.getElementById('nearest').innerHTML = ''
+            for(var x of rmDuplications){
+              document.getElementById('nearest').innerHTML +=  '<a href="#">'+ x+'</a>' + '<br>'
+            }
+
+           
+            
+          }
+
+         
+          //else document.getElementById('nearest').innerHTML = 'No Nearest'
+
+      }
+    </script>
+
+    <style>
+      body{
+        font-family: 'Baloo Thambi 2', cursive;
+      }
+    </style>
+    <title>Find School</title>
+  </head>
+  <body>
+<!-- Navbar        -->
+<nav class="navbar navbar-expand-lg navbar-dark p-0 d-flex align-items-center py-0">
+    <div class="container"><a class="navbar-brand p-0" href="index.html"><img src="images/logo.png"/></a><button class="navbar-toggler" data-toggle="collapse" data-target="#n-links"><span class="navbar-toggler-icon"></span></button>
+        <div class="collapse navbar-collapse" id="n-links">
+            <ul class="navbar-nav ml-auto align-items-center">
+                <li class="nav-item active position-relative"><a href='index.html' class="nav-link d-flex align-items-center py-0 px-3">HOME<span class="sr-only">(current)</span></a>
+                    
+                </li>
+                <li class="nav-item"><a class="nav-link d-flex align-items-center py-0 px-3" href="aboutUs.html">About</a></li>
+                <li class="nav-item position-relative"><a class="nav-link d-flex align-items-center py-0 px-3">Search<i class="fas fa-angle-down ml-2 fa-sm"></i></a>
+                    <ul class="position-absolute list-unstyled dropdown-men">
+                        <li class="drop"><a class="drop-link text-decoration-none text-dark d-block py-3 pl-3 active" href="schoolSearch.html">School</a></li>
+                        <li class="drop"><a class="drop-link text-decoration-none text-dark d-block py-3 pl-3 last" href="hospitalSearch.html">Hospital</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item"><a class="nav-link d-flex align-items-center py-0 px-3" href="contactUs.html">CONTACT     </a></li>
+                <li class="nav-item ml-3 text-white sign d-flex align-items-center">
+                  <div class="mr-3"><a href="login.html"><i class="fas fa-lock"></i> <span>Sign in</span></a></div>
+                  <div class=""><a href='register.html'><i class="fas fa-sign-out-alt"></i> <span>Sign up</span></a></div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Select Criteria -->
+<section class="search">
+    <div class="menu-title d-flex pr-3">
+        <h3 class="p-3 text-white mb-0">Select Cretirea</h3>
+
+        <button class="menu-toggle border-0 text-center" id="toggle-cri">
+            <span></span>
+            <span class="my-1"></span>
+            <span></span>
+        </button>
+    </div>
+    <form onsubmit="event.preventDefault();" class="p-2">
+      <label class="font-weight-bold text-white">Distance</label>
+      <div class="slidecontainer">
+        <input type="range" min="1" max="400" value="50" class="slider" id="dis">
+        <div class="d-flex mt-3 align-items-center">
+          <span class="text-white mr-2 d-block">Value</span>
+          <p class="text-center font-weight-bold mb-0 px-2" id="demoDis" style="line-height: 40px; background-color: #FFF; color: #000; width: auto; height: 40px"></p>            
+        </div>
+      </div>
+
+      <div class="my-3 d-flex justify-content-between align-items-center">
+        <label class="font-weight-bold text-white mb-0">School Type</label>
+        <select class="form-control w-50">
+          <option>Public</option>
+          <option>Private</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="font-weight-bold text-white">Payes</label>
+        <div class="slidecontainer">
+          <input type="range" min="1" max="100" value="50" class="slider" id="myRangeP">
+          <div class="d-flex mt-3 align-items-center">
+            <span class="text-white mr-2 d-block">Value</span>
+            <p class="text-center font-weight-bold mb-0 px-2" id="demoP" style="line-height: 40px; background-color: #FFF; color: #000; width: auto; height: 40px"></p>            
+          </div>
+        </div>
+      </div>
+      <!--<button id="search">Search</button>-->
+    </form>
+    <div class="p-2">
+        <button id="draw" class="btn px-3 py-2 text-white mt-3" onclick="search();" style="background-color: #007bff;">Find</button>
+    </div>
+    
+    <div id="nearest" class="position-fixed w-100 p-2" style="bottom: 0; background-color: #0D1326;"></div>
+  </section>
+  <div id="viewDiv"></div>
+    
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src='./js/jquery-3.4.1.min.js'></script>
+    <script src="./js/popper.min.js"></script>
+    <script src="./js/bootstrap.min.js"></script>
+    <script src="./js/schoolScript.js"></script>
+    <script>
+      var sliderP = document.getElementById("myRangeP");
+      var outputP = document.getElementById("demoP");
+      outputP.innerHTML = sliderP.value + 'K';
+
+      sliderP.oninput = function() {
+        outputP.innerHTML = this.value + 'K';
+      }
+
+      // Distance Range
+      var slider = document.getElementById("dis");
+      var output = document.getElementById("demoDis");
+      output.innerHTML = slider.value + 'KM';
+
+      slider.oninput = function() {
+        output.innerHTML = this.value + 'KM';
+      }
+    </script>
+  </body>
+  
+
+
+
+
+
+</html>
